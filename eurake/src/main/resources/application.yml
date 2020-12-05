@@ -1,0 +1,26 @@
+spring:
+  # eureka登陆认证配置
+  security:
+    user:
+      name: admin
+      password: admin
+  freemarker:
+    template-loader-path: classpath:/templates/
+    prefer-file-system-access: false
+
+server:
+  port: 8761
+
+eureka:
+  instance:
+    hostname: localhost
+    prefer-ip-address: true
+  client:
+    registerWithEureka: false
+    fetchRegistry: false
+    serviceUrl:
+      defaultZone: http://admin:admin@${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    # 关闭保护机制，服务确保注册中心中不可用的实例被及时的剔除（不推荐）
+    enable-self-preservation: false
+

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- status表示log4j2自身的输出日志级别，monitorInterval表示过多少秒后重新读取配置文件 -->
+<configuration status="WARN" monitorInterval="3000">
+	<properties>
+		<property name="app">demo</property>
+        <property name="log.home">/Users/dreamer/logs/${app}</property>
+        <property name="file.name">${app}</property>
+        <property name="log.pattern">%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{X-B3-TraceId},%X{X-B3-SpanId},%X{X-B3-ParentSpanId},%X{X-Span-Export}] [%t] %-5level %l - %msg%xEx%n</property>
+        <property name="log.arms.pattern">%d{yyyy-MM-dd HH:mm:ss.SSS}|[%t]|%msg%xEx%n</property>
+    </properties>
+	<!-- 先定义所有的appender -->
+	<appenders>
+		<!-- 这个输出控制台的配置 -->
+		<Console name="Console" target="SYSTEM_OUT">
+			<!-- 控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch） -->
+			<ThresholdFilter level="DEBUG" onMatch="ACCEPT"	onMismatch="DENY" />
+			<!-- 输出日志的格式 -->
+			<PatternLayout pattern="${log.pattern}" />
+		</Console>
+		
+		<!-- 调试日志 这个会打印出所有的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档 -->
+		<RollingFile name="DebugLog" fileName="${log.home}/${file.name}-debug.log"
+			filePattern="${log.home}/$${date:yyyy-MM}/${file.name}-debug-%d{yyyy-MM-dd}-%i.log">
+			<!-- 只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch） -->
+			<PatternLayout pattern="${log.pattern}" />
+			<Filters>
+				<ThresholdFilter level="DEBUG"/>
+            	<ThresholdFilter level="INFO" onMatch="DENY" onMismatch="NEUTRAL"/>
+            </Filters>
+			<Policies>
+				<!-- 按大小产生文件 -->
+                <SizeBasedTriggeringPolicy size="500 MB" />
+                <!-- 按时间产生文件 -->
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+            <DefaultRolloverStrategy max="30" />
+		</RollingFile>
+
+		<!-- 告警日志 这个会打印出所有的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档 -->
+		<RollingFile name="WarnLog" fileName="${log.home}/${file.name}-warn.log"
+					 filePattern="${log.home}/$${date:yyyy-MM}/${file.name}-debug-%d{yyyy-MM-dd}-%i.log">
+			<PatternLayout pattern="${log.pattern}" />
+			<!-- 默认只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch） -->
+			<!-- 打印告警日志，过滤掉错误日志 -->
+			<Filters>
+				<ThresholdFilter level="WARN"/>
+				<ThresholdFilter level="ERROR" onMatch="DENY" onMismatch="NEUTRAL"/>
+			</Filters>
+			<!-- 日志归档策略 -->
+			<Policies>
+				<!-- 按大小产生文件 -->
+				<SizeBasedTriggeringPolicy size="500 MB" />
+				<!-- 按时间产生文件 -->
+				<TimeBasedTriggeringPolicy />
+			</Policies>
+			<DefaultRolloverStrategy max="30" />
+		</RollingFile>
+
+		<!-- INFO日志 这个会打印出所有的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档 -->
+		<RollingFile name="InfoLog" fileName="${log.home}/${file.name}-info.log"
+			filePattern="${log.home}/$${date:yyyy-MM}/${file.name}-info-%d{yyyy-MM-dd}-%i.log">
+			<!-- 只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch） -->
+			<PatternLayout pattern="${log.pattern}" />
+			<Filters>
+				<ThresholdFilter level="INFO" onMatch="ACCEPT"	onMismatch="DENY" />
+            </Filters>
+			<Policies>  
+                <SizeBasedTriggeringPolicy size="500 MB" />
+                <TimeBasedTriggeringPolicy />
+            </Policies> 
+            <DefaultRolloverStrategy max="30" />
+		</RollingFile>
+
+		<!-- arms 监控报警 -->
+		<RollingFile name="rollingArmsFileIno" fileName="${log.home}/arms.log" filePattern="${log.home}/$${date:yyyy-MM}/arms-%d{yyyy-MM-dd}-%i.log">
+			<ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
+			<PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss.SSS}|%msg%n"/>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+			</Policies>
+		</RollingFile>
+		
+		<!-- 错误日志 这个会打印出所有的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档 -->
+		<RollingFile name="ErrorLog" fileName="${log.home}/${file.name}-error.log"
+			filePattern="${log.home}/$${date:yyyy-MM}/${file.name}-error-%d{yyyy-MM-dd}-%i.log">
+			<PatternLayout pattern="${log.pattern}" />
+			<Filters>
+				<!-- 只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch） -->
+                <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+			<Policies>  
+                <SizeBasedTriggeringPolicy size="500 MB" />
+                <TimeBasedTriggeringPolicy />
+            </Policies> 
+            <DefaultRolloverStrategy max="30" />
+		</RollingFile>
+		
+		<!-- 这个会打印出所有的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档 -->
+		<!--<RollingFile name="DruidSqlLog" fileName="${log.home}/${file.name}-druidsql.log"
+			filePattern="${log.home}/$${date:yyyy-MM}/${file.name}-druidsql-%d{yyyy-MM-dd}-%i.log">
+			<PatternLayout pattern="${log.pattern}" />
+			<Policies>  
+                <SizeBasedTriggeringPolicy size="500 MB" />
+                <TimeBasedTriggeringPolicy />
+            </Policies> 
+            <DefaultRolloverStrategy max="30" />
+		</RollingFile>-->
+	</appenders>
+
+	<!-- 然后定义logger，只有定义了logger并引入的appender，appender才会生效 -->
+	<loggers>
+
+        <!--记录druid-sql的记录-->
+        <!-- <Logger name="druid.sql.Statement" level="DEBUG" additivity="false">
+            <appender-ref ref="DruidSqlLog"/>
+        </Logger> -->
+
+        <!--log4j2 自带过滤日志-->
+        <!-- <Logger name="org.springframework" level="INFO" /> -->
+        <logger name="org.apache.catalina.startup.DigesterFactory" level="ERROR" />
+        <logger name="org.apache.catalina.util.LifecycleBase" level="ERROR" />
+        <logger name="org.apache.coyote.http11.Http11NioProtocol" level="WARN" />
+        <logger name="org.apache.sshd.common.util.SecurityUtils" level="WARN"/>
+        <logger name="org.apache.tomcat.util.net.NioSelectorPool" level="WARN" />
+        <logger name="org.crsh.plugin" level="WARN" />
+        <logger name="org.crsh.ssh" level="WARN"/>
+        <logger name="org.eclipse.jetty.util.component.AbstractLifeCycle" level="ERROR" />
+        <logger name="org.hibernate.validator.internal.util.Version" level="WARN" />
+        <logger name="org.springframework.boot.actuate.autoconfigure.CrshAutoConfiguration" level="WARN"/>
+        <logger name="org.springframework.boot.actuate.endpoint.jmx" level="WARN"/>
+        <logger name="org.thymeleaf" level="warn"/>
+		<logger name="java.sql" level="DEBUG"/>
+		<logger name="org.apache.ibatis" level="DEBUG"/>
+		<logger name="com.jfbank.fincloud.loan.contractseal" level="DEBUG"/>
+
+
+		<logger name="arms" level="INFO" additivity="false">
+			<AppenderRef ref="rollingArmsFileIno"/>
+		</logger>
+		<Root level="INFO" includeLocation="true">
+			<AppenderRef ref="DebugLog" />
+			<AppenderRef ref="InfoLog" />
+			<AppenderRef ref="ErrorLog" />
+			<AppenderRef ref="Console" />
+		</Root>
+	</loggers>
+</configuration>

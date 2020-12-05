@@ -1,0 +1,95 @@
+server:
+  port: 8082
+  servlet:
+    context-path:
+    # 解决中文乱码问题
+    encoding:
+      force: true
+      charset: UTF-8
+      enabled: true
+  tomcat:
+    uri-encoding: UTF-8
+
+eureka:
+  instance:
+    status-page-url-path: ${server.servlet.context-path}/info
+    health-check-url-path: ${server.servlet.context-path}/health
+    appname: demo-server2
+  client:
+    healthcheck:
+      enabled: true
+    serviceUrl:
+      defaultZone: http://admin:admin@localhost:8761/eureka/
+    # 安全传输协议
+#    tls:
+#      enabled: true
+
+spring:
+  application:
+    name: demo-server2  # 踩坑，feignClient中的名称必须为spring.application.name
+  http:
+
+  cloud:
+    loadbalancer:
+      # 由于 Spring Cloud Netflix Ribbon 处于维护模式，建议使用Spring Cloud LoadBalancer 替代
+      # 禁用ribbon
+      ribbon:
+        enabled: false
+
+
+# 开启后，feign将使用hystrix（刺猬草断路器）包装feignClient中所有的方法
+# 注意：此处短路器是消费端（调用端）断路器，当调用端通过feign客户端去调用服务端接口，如果超过断路器配置的
+# 超时时间（说明此时服务端繁忙），那么将在客户端打开断路器，执行服务降级，直接返回降级后的结果
+# 调用访问被降级后，在一个时间窗口内会从一堆访问连接释放一个连接到真正的服务端，如果此连接成功返回，关闭断路器，否则继续开启
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 1000  # 指定Feign客户端连接提供者的超时时限   取决于网络环境
+        readTimeout: 1000   # 指定Feign客户端从请求到获取到提供者给出的响应的超时时限  取决于业务逻辑运算时间
+        loggerLevel: basic
+  # 开启后，feign将使用刺猬草断路器包装feignClient中所有的方法
+  hystrix:
+    enabled: true
+  compression:
+    request:
+      enabled: true   # 开启对请求的压缩
+      mime-types: text/xml, application/xml
+      min-request-size: 2048   # 指定启用压缩的最小文件大小
+    response:
+      enabled: true # 开启对响应的压缩
+# To disable Hystrix in Feign
+#  hystrix:
+#    enabled: false
+
+# 配置hystrix指标流 访问/actuator/hystrix.stream
+management:
+  endpoints:
+    web:
+      exposure:
+        include: hystrix.stream
+
+# 访问断路器控制面板主页地址 /hystrix
+# 地址栏输入 hystrix指标流地址 /actuator/hystrix.stream
+hystrix:
+  dashboard:
+    proxy-stream-allow-list: localhost
+  # 将线程隔离设置为信号量
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 1000
+          strategy: SEMAPHORE
+      circuitBreaker:
+        enable: true
+        # 默认20 ，熔断的阈值，如何user服务报错满足3次，熔断器就会打开，就算order之后请求正确的数据也不行。
+        requestVolumeThreshold: 3
+        # 默认5S ， 等5S之后熔断器会处于半开状态，然后下一次请求的正确和错误讲决定熔断器是否真的关闭和是否继续打开
+        sleepWindowInMilliseconds: 8000
+
+
+
+
+

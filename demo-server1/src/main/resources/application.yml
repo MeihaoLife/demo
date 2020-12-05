@@ -1,0 +1,69 @@
+server:
+  port: 8081
+  servlet:
+    context-path:
+spring:
+  application:
+    name: demo-server1
+  cloud:
+    loadbalancer:
+      # 由于 Spring Cloud Netflix Ribbon 处于维护模式，建议使用Spring Cloud LoadBalancer 替代
+      # 禁用ribbon
+      ribbon:
+        enabled: false
+eureka:
+  instance:
+    status-page-url-path: ${server.servlet.context-path}/info
+    health-check-url-path: ${server.servlet.context-path}/health
+    appname: demo-server1
+  client:
+    healthcheck:
+      enabled: true
+    serviceUrl:
+      defaultZone: http://admin:admin@localhost:8761/eureka/
+    # 安全传输协议
+#    tls:
+#      enabled: true
+
+# 开启后，feign将使用hystrix（刺猬草断路器）包装feignClient中所有的方法
+# 注意：此处短路器是消费端（调用端）断路器，当调用端通过feign客户端去调用服务端接口，如果超过断路器配置的
+# 超时时间（说明此时服务端繁忙），那么将在客户端打开断路器，执行服务降级，直接返回降级后的结果
+# 调用访问被降级后，在一个时间窗口内会从一堆访问连接释放一个连接到真正的服务端，如果此连接成功返回，关闭断路器，否则继续开启
+feign:
+  hystrix:
+    enabled: true
+
+# 配置hystrix指标流 访问/actuator/hystrix.stream
+management:
+  endpoints:
+    web:
+      exposure:
+        include: hystrix.stream
+
+# 访问断路器控制面板主页地址 /hystrix
+# 地址栏输入 hystrix指标流地址 /actuator/hystrix.stream
+hystrix:
+  dashboard:
+    proxy-stream-allow-list: localhost
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+          # hystrix超时时间，访问超过这个时间，执行断路器中的逻辑，返回默认数据，代码UserHystrixFallBack
+            timeoutInMilliseconds: 500
+          # hystrix将线程隔离设置为信号量
+          strategy: SEMAPHORE
+      circuitBreaker:
+        enable: true
+
+# Ribbon配置stores服务的列表
+#stores:
+#  ribbon:
+#    listOfServers: baidu.com,baidu.com
+# Ribbon配置不使用eureka
+#ribbon:
+#  eureka:
+#    enabled: false
+
+# Ribbon使用eureka

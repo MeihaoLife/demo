@@ -1,0 +1,58 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 1000
+        response-timeout: 5s
+      routes:
+        - id: demo-server1
+          uri: http://127.0.0.1:8081
+          predicates:
+            - Path=/server1/**
+            - Method=GET,POST
+          filters:
+            - StripPrefix=1  # 踩坑，加上StripPrefix=1，否则转发到后端服务时会带上server1前缀
+        - id: demo-server2
+          uri: lb://demo-server2
+          predicates:
+            - Path=/server2/**
+          filters:
+            - StripPrefix=1
+      enabled: true
+      default-filters:
+        - StripPrefix=1
+        - name: Hystrix
+          args:
+            name: fallback
+            fallbackUri: forward:/fallback
+#
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    service-url:
+      defaultZone: http://admin:admin@localhost:8761/eureka/
+
+# 访问断路器控制面板主页地址 /hystrix
+# 地址栏输入 hystrix指标流地址 /actuator/hystrix.stream
+hystrix:
+#  dashboard:
+#    proxy-stream-allow-list: localhost
+  # 将线程隔离设置为信号量
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 1000
+          strategy: SEMAPHORE
+      circuitBreaker:
+        enable: true
+        # 默认20 ，熔断的阈值，如何user服务报错满足3次，熔断器就会打开，就算order之后请求正确的数据也不行。
+        requestVolumeThreshold: 3
+        # 默认5S ， 等5S之后熔断器会处于半开状态，然后下一次请求的正确和错误讲决定熔断器是否真的关闭和是否继续打开
+        sleepWindowInMilliseconds: 8000
