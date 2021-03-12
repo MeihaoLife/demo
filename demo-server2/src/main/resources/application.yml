@@ -27,8 +27,6 @@ eureka:
 spring:
   application:
     name: demo-server2  # 踩坑，feignClient中的名称必须为spring.application.name
-  http:
-
   cloud:
     loadbalancer:
       # 由于 Spring Cloud Netflix Ribbon 处于维护模式，建议使用Spring Cloud LoadBalancer 替代
